@@ -1,124 +1,368 @@
-const API = "https://feelbetterbot.com/";
+import crypto from "node:crypto";
+import fs from "node:fs/promises";
 
-function makeMemoryId() {
-  const animals = ["owl", "fox", "cat", "wolf", "bear", "lion", "deer", "bird"];
-  const words = ["safe", "calm", "soft", "kind", "warm", "bright", "gentle"];
-  const word = words[Math.floor(Math.random() * words.length)];
-  const animal = animals[Math.floor(Math.random() * animals.length)];
-  const number = Math.floor(1000 + Math.random() * 9000);
-  return `${word}-${animal}-${number}`;
-}
+const BASE = "https://www.olabiba.com";
+const SESSION_FILE = "./olabiba-session.json";
 
-function parseChunk(line) {
-  let data = line.trim();
-  if (!data) return "";
-  if (data === "[DONE]") return "";
-  if (data.startsWith("data:")) data = data.slice(5).trim();
-  if (!data || data === "[DONE]") return "";
+const USER_PROMPT = "Halo bro sekarang gimana mood mu";
+
+const mood = "friendly";
+const lang = "en";
+const adblock = "No";
+const theme = "light";
+
+const ua =
+  "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36";
+
+async function loadSession() {
   try {
-    const json = JSON.parse(data);
-    if (typeof json === "string") return json;
-    if (typeof json.content === "string") return json.content;
-    if (typeof json.text === "string") return json.text;
-    if (typeof json.delta === "string") return json.delta;
-    if (typeof json.message === "string") return json.message;
-    if (typeof json.response === "string") return json.response;
-    if (typeof json.answer === "string") return json.answer;
-    const openAiContent = json.choices?.[0]?.delta?.content;
-    if (typeof openAiContent === "string") return openAiContent;
-    return "";
+    const raw = await fs.readFile(SESSION_FILE, "utf8");
+    const session = JSON.parse(raw);
+
+    return {
+      sessionId: session.sessionId || crypto.randomUUID(),
+      deviceId: session.deviceId || crypto.randomUUID(),
+      cookies: session.cookies || {},
+      messages: Array.isArray(session.messages) ? session.messages : [],
+    };
   } catch {
-    return data;
+    return {
+      sessionId: crypto.randomUUID(),
+      deviceId: crypto.randomUUID(),
+      cookies: {},
+      messages: [],
+    };
   }
 }
 
-export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+async function saveSession(session) {
+  await fs.writeFile(SESSION_FILE, JSON.stringify(session, null, 2), "utf8");
+}
 
-  const { messages, system } = req.body || {};
-  if (!messages || !Array.isArray(messages)) {
-    return res.status(400).json({ error: "messages array required" });
-  }
+function nowUnix() {
+  return Math.floor(Date.now() / 1000);
+}
 
-  const memoryId = makeMemoryId();
+function getCookieHeader(session) {
+  return Object.entries(session.cookies || {})
+    .map(([key, value]) => `${key}=${value}`)
+    .join("; ");
+}
 
-  const SYSTEM_MESSAGE =
-    system ||
-    "Kamu adalah asisten AI yang dibuat oleh Wildann. Ikuti bahasa yang digunakan user dalam percakapan. Jika user memakai bahasa Indonesia, jawab dalam bahasa Indonesia yang natural, santai, jelas, dan mudah dipahami. Jangan tiba-tiba pindah bahasa kecuali user memintanya. Jika user bertanya siapa pembuatmu, penciptamu, developermu, atau siapa yang membuatmu, jawab bahwa pembuatmu adalah wildann.";
+function saveSetCookie(session, headers) {
+  const setCookies =
+    typeof headers.getSetCookie === "function"
+      ? headers.getSetCookie()
+      : headers.get("set-cookie")
+        ? [headers.get("set-cookie")]
+        : [];
 
-  const DEFAULT_ASSISTANT_MESSAGE =
-    "Hi, I'm FeelBetterBot — I'm here to listen and help you carry whatever feels heavy, without judgment. I draw on gentle, proven ways of working through hard things, but mostly I just want to understand what you're going through. So, how are you doing right now?";
+  if (!session.cookies) session.cookies = {};
 
-  const body = {
-    messages: [
-      { role: "system", content: SYSTEM_MESSAGE },
-      { role: "assistant", content: DEFAULT_ASSISTANT_MESSAGE },
-      ...messages,
-    ],
-  };
+  for (const raw of setCookies) {
+    const first = raw.split(";")[0];
+    const idx = first.indexOf("=");
 
-  const headers = {
-    "sec-ch-ua-platform": `"Android"`,
-    "user-agent":
-      "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
-    "sec-ch-ua": `"Google Chrome";v="147", "Not.A/Brand";v="8", "Chromium";v="147"`,
-    "content-type": "application/json",
-    "sec-ch-ua-mobile": "?1",
-    accept: "*/*",
-    origin: "https://feelbetterbot.com",
-    referer: "https://feelbetterbot.com/",
-    "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-    cookie: `feelbet-memory=${memoryId}`,
-    priority: "u=1, i",
-  };
-
-  try {
-    const response = await fetch(API, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      return res.status(502).json({ error: "Upstream error", detail: text.slice(0, 500) });
+    if (idx !== -1) {
+      session.cookies[first.slice(0, idx)] = first.slice(idx + 1);
     }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let answer = "";
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-      for (const rawLine of lines) {
-        const chunk = parseChunk(rawLine);
-        if (chunk) answer += chunk;
-      }
-    }
-
-    if (buffer.trim()) {
-      const chunk = parseChunk(buffer);
-      if (chunk) answer += chunk;
-    }
-
-    if (!answer) {
-      return res.status(502).json({ error: "No answer from upstream" });
-    }
-
-    return res.status(200).json({
-      choices: [{ message: { role: "assistant", content: answer } }],
-      model: "epic",
-    });
-  } catch (e) {
-    return res.status(500).json({ error: e.message });
   }
 }
+
+function setDefaultClientCookies(session) {
+  if (!session.cookies) session.cookies = {};
+
+  const t = nowUnix();
+
+  if (!session.cookies.olabiba_consent) {
+    session.cookies.olabiba_consent = `true%3A${t + 604800}`;
+  }
+
+  if (!session.cookies.FCCDCF) {
+    const consentUUID = crypto.randomUUID();
+
+    session.cookies.FCCDCF = encodeURIComponent(
+      JSON.stringify([
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        [[[32, JSON.stringify([consentUUID, [t, 895000000]])]]],
+      ])
+    );
+  }
+}
+
+async function request(session, url, options = {}) {
+  const headers = new Headers(options.headers || {});
+
+  headers.set("user-agent", ua);
+  headers.set("accept-language", "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7");
+
+  const cookie = getCookieHeader(session);
+  if (cookie) headers.set("cookie", cookie);
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  saveSetCookie(session, response.headers);
+
+  return response;
+}
+
+async function initSession(session) {
+  setDefaultClientCookies(session);
+
+  await request(session, `${BASE}/`, {
+    method: "GET",
+    headers: {
+      accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    },
+  });
+}
+
+function buildContextPrompt(session, prompt) {
+  const history = session.messages
+    .slice(-10)
+    .map((msg) => {
+      if (msg.role === "user") return `User: ${msg.content}`;
+      if (msg.role === "assistant") return `Assistant: ${msg.content}`;
+      return `${msg.role}: ${msg.content}`;
+    })
+    .join("\n");
+
+  if (!history) return prompt;
+
+  return `${history}
+User: ${prompt}`;
+}
+
+async function sendMessage(session, text) {
+  const form = new FormData();
+
+  form.set("text", text);
+  form.set("mood", mood);
+  form.set("lang", lang);
+  form.set("adblock", adblock);
+  form.set("theme", theme);
+
+  const response = await request(session, `${BASE}/php/message.php`, {
+    method: "POST",
+    body: form,
+    headers: {
+      accept: "*/*",
+      origin: BASE,
+      referer: `${BASE}/`,
+      "sec-fetch-site": "same-origin",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+    },
+  });
+
+  await response.text().catch(() => "");
+
+  return response.status;
+}
+
+function decodeHtmlLite(text) {
+  return text
+    .replaceAll("&nbsp;", " ")
+    .replaceAll("&amp;", "&")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#039;", "'")
+    .replaceAll("&#39;", "'");
+}
+
+function cleanAnswer(text) {
+  let output = text || "";
+
+  const queryIndex = output.indexOf("<!--QUERY:");
+  if (queryIndex !== -1) {
+    output = output.slice(0, queryIndex);
+  }
+
+  const followupIndex = output.search(/\[FOLLOWUP(?::[^\]]*)?\]/i);
+  if (followupIndex !== -1) {
+    output = output.slice(0, followupIndex);
+  }
+
+  const elaborateIndex = output.search(/\[ELABORATE\]/i);
+  if (elaborateIndex !== -1) {
+    output = output.slice(0, elaborateIndex);
+  }
+
+  return output
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/\[ELABORATE\]/gi, "")
+    .replace(/\[FOLLOWUP(?::[^\]]*)?\][\s\S]*?(?:\[\/FOLLOWUP\])?/gi, "")
+    .replace(/\[\/FOLLOWUP\]/gi, "")
+    .replace(/\[FOLLOWUP:[^\]]*\]/gi, "")
+    .replace(/\\n/g, " ")
+    .replace(/\n/g, " ")
+    .replace(/\r/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function readStreamAnswer(session) {
+  const response = await request(session, `${BASE}/php/stream.php`, {
+    method: "GET",
+    headers: {
+      accept: "text/event-stream",
+      "cache-control": "no-cache",
+      referer: `${BASE}/`,
+      "sec-fetch-site": "same-origin",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+    },
+  });
+
+  if (!response.body) {
+    return {
+      status: response.status,
+      answer: "",
+    };
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  let buffer = "";
+  let answer = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split(/\r?\n/);
+    buffer = lines.pop() || "";
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+
+      if (!line.startsWith("data:")) continue;
+
+      const data = line.slice(5).trim();
+
+      if (!data || data === "[DONE]") continue;
+
+      answer += decodeHtmlLite(data);
+    }
+  }
+
+  return {
+    status: response.status,
+    answer: cleanAnswer(answer),
+  };
+}
+
+async function fetchMedia(session) {
+  const response = await request(session, `${BASE}/php/fetch_media.php`, {
+    method: "POST",
+    headers: {
+      accept: "*/*",
+      origin: BASE,
+      referer: `${BASE}/`,
+      "content-length": "0",
+      "sec-fetch-site": "same-origin",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+    },
+  });
+
+  await response.text().catch(() => "");
+}
+
+async function saveResponse(session, question, answer) {
+  const body = new URLSearchParams({
+    question,
+    answer,
+    html: answer,
+  });
+
+  const response = await request(session, `${BASE}/php/save-response.php`, {
+    method: "POST",
+    body,
+    headers: {
+      accept: "*/*",
+      origin: BASE,
+      referer: `${BASE}/`,
+      "content-type": "application/x-www-form-urlencoded",
+      "sec-fetch-site": "same-origin",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-dest": "empty",
+    },
+  });
+
+  await response.text().catch(() => "");
+}
+
+async function ask() {
+  const session = await loadSession();
+
+  const finalPrompt = buildContextPrompt(session, USER_PROMPT);
+
+  const userMessage = {
+    id: crypto.randomUUID(),
+    role: "user",
+    content: USER_PROMPT,
+  };
+
+  await initSession(session);
+
+  const messageStatus = await sendMessage(session, finalPrompt);
+  const stream = await readStreamAnswer(session);
+
+  if (messageStatus === 200 && stream.answer) {
+    await fetchMedia(session);
+    await saveResponse(session, USER_PROMPT, stream.answer);
+
+    const assistantMessage = {
+      id: crypto.randomUUID(),
+      role: "assistant",
+      content: stream.answer,
+    };
+
+    session.messages.push(userMessage, assistantMessage);
+    await saveSession(session);
+  }
+
+  return {
+    status: stream.status === 200 && Boolean(stream.answer),
+    code: stream.status,
+    question: USER_PROMPT,
+    answer: stream.answer,
+  };
+}
+
+ask()
+  .then((result) => {
+    console.log(JSON.stringify(result, null, 2));
+  })
+  .catch((error) => {
+    console.log(
+      JSON.stringify(
+        {
+          status: false,
+          code: 500,
+          question: USER_PROMPT,
+          answer: "",
+          error: error.message,
+        },
+        null,
+        2
+      )
+    );
+
+    process.exit(1);
+  });
