@@ -1,5 +1,5 @@
 import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
-import { writeFileSync, unlinkSync } from 'fs';
+import { writeFileSync, unlinkSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -9,19 +9,66 @@ const CONFIG = {
   icon:  { gap: 8,  y: 64,  size: 20 },
 };
 
+// Cache font path agar tidak re-download setiap request
+const fontCache = {};
+
+const FETCH_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Accept': '*/*',
+  'Cache-Control': 'no-cache',
+};
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timer);
+    return res;
+  } catch (e) {
+    clearTimeout(timer);
+    throw e;
+  }
+}
+
 async function loadFont(url, name) {
-  const buf     = Buffer.from(await (await fetch(url)).arrayBuffer());
-  const tmpPath = join(tmpdir(), `${name}-${Date.now()}.ttf`);
+  // Kalau sudah pernah di-load dan file masih ada, skip
+  if (fontCache[name] && existsSync(fontCache[name])) {
+    return fontCache[name];
+  }
+
+  const res = await fetchWithTimeout(url, { headers: FETCH_HEADERS });
+  if (!res.ok) throw new Error(`Gagal fetch font ${name}: HTTP ${res.status}`);
+
+  const buf     = Buffer.from(await res.arrayBuffer());
+  const tmpPath = join(tmpdir(), `${name}.ttf`); // nama tetap, tidak pakai timestamp agar bisa re-use
   writeFileSync(tmpPath, buf);
   GlobalFonts.registerFromPath(tmpPath, name);
+  fontCache[name] = tmpPath;
   return tmpPath;
 }
 
 async function generate(angka) {
-  const tmp1 = await loadFont('https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Font/iconfont.ttf', 'FontRp');
-  const tmp2 = await loadFont('https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Font/f5803c-1772975107907.ttf', 'FontSaldo');
-
-  const bg = await loadImage('https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Image/_20260501192538912.jpg');
+  // Load font & background paralel
+  const [, , bg] = await Promise.all([
+    loadFont(
+      'https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Font/iconfont.ttf',
+      'FontRp'
+    ),
+    loadFont(
+      'https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Font/f5803c-1772975107907.ttf',
+      'FontSaldo'
+    ),
+    (async () => {
+      const res = await fetchWithTimeout(
+        'https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Image/_20260501192538912.jpg',
+        { headers: FETCH_HEADERS }
+      );
+      if (!res.ok) throw new Error(`Gagal fetch background: HTTP ${res.status}`);
+      const buf = Buffer.from(await res.arrayBuffer());
+      return loadImage(buf);
+    })(),
+  ]);
 
   const canvas = createCanvas(bg.width, bg.height);
   const ctx    = canvas.getContext('2d');
@@ -40,15 +87,12 @@ async function generate(angka) {
   ctx.textBaseline = 'top';
   ctx.fillText(angka, CONFIG.saldo.x, CONFIG.saldo.y);
 
-  // Ikon mata (SVG tidak didukung @napi-rs/canvas, pakai karakter unicode)
+  // Ikon mata
   const textWidth = ctx.measureText(angka).width;
   const iconX     = CONFIG.saldo.x + textWidth + CONFIG.icon.gap;
   ctx.font      = `${CONFIG.icon.size}px sans-serif`;
   ctx.fillStyle = 'rgba(255,255,255,0.65)';
   ctx.fillText('●', iconX, CONFIG.icon.y);
-
-  try { unlinkSync(tmp1); } catch {}
-  try { unlinkSync(tmp2); } catch {}
 
   return canvas.toBuffer('image/png');
 }
@@ -84,6 +128,10 @@ export default async function handler(req, res) {
     res.setHeader('Content-Disposition', `inline; filename="dana_${raw}.png"`);
     return res.status(200).send(buffer);
   } catch (err) {
-    return res.status(500).json({ error: err.message || 'Gagal generate gambar.' });
+    console.error('[fake-saldo-dana] Error:', err);
+    return res.status(500).json({
+      error: err.message || 'Gagal generate gambar.',
+      hint: 'Pastikan asset GitHub bisa diakses dari server Vercel.',
+    });
   }
 }
