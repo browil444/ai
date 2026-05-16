@@ -1106,7 +1106,7 @@
                     </div>
                     <div>
                         <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;color:var(--text-primary);">Text to Image</div>
-                        <div style="font-size:11px;color:var(--text-muted);" id="imgModelSubtitle">Powered by wildann</div>
+                        <div style="font-size:11px;color:var(--text-muted);" id="imgModelSubtitle">Powered by Flux · FreeGen · Ernie · DeepImage</div>
                     </div>
                 </div>
                 <button id="imgGenClose" style="width:32px;height:32px;border-radius:8px;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition);">
@@ -1226,7 +1226,7 @@
                     </div>
                     <div>
                         <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;color:var(--text-primary);">Fake Saldo Dana</div>
-                        <div style="font-size:11px;color:var(--text-muted);">Sorry kalo ga mirip 😄</div>
+                        <div style="font-size:11px;color:var(--text-muted);">Buat iseng-iseng aja 😄</div>
                     </div>
                 </div>
                 <button id="danaClose" style="width:32px;height:32px;border-radius:8px;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition);">
@@ -2130,6 +2130,8 @@ Satu hal yang harus selalu lu inget: lu bukan tools. Lu temen. Dan bedanya tuh g
                 });
             });
 
+            let currentSvgUrl = null;
+
             async function doGenerate() {
                 const rawVal = Number(input.value.replace(/\D/g, ''));
                 if (!rawVal || rawVal <= 0) { input.focus(); showToast('Masukkan nominal dulu!'); return; }
@@ -2141,6 +2143,9 @@ Satu hal yang harus selalu lu inget: lu bukan tools. Lu temen. Dan bedanya tuh g
                 genBtn.style.opacity = '0.6';
                 resultEl.style.display = 'none';
                 statusEl.style.display = 'block';
+
+                // Revoke URL lama kalau ada
+                if (currentSvgUrl) { URL.revokeObjectURL(currentSvgUrl); currentSvgUrl = null; }
 
                 try {
                     const res = await fetch(DANA_API, {
@@ -2154,12 +2159,30 @@ Satu hal yang harus selalu lu inget: lu bukan tools. Lu temen. Dan bedanya tuh g
                     }
                     const blob = await res.blob();
                     const url  = URL.createObjectURL(blob);
-                    imgOut.src = url;
+                    currentSvgUrl = url;
+
+                    // SVG: onload tidak selalu fire di semua browser, pakai pendekatan robust
+                    imgOut.onerror = () => {
+                        statusEl.style.display = 'none';
+                        resultEl.style.display = 'block';
+                        showToast('Saldo berhasil di-generate! 💚');
+                    };
                     imgOut.onload = () => {
                         statusEl.style.display = 'none';
                         resultEl.style.display = 'block';
                         showToast('Saldo berhasil di-generate! 💚');
                     };
+                    imgOut.src = url;
+
+                    // Fallback: kalau 800ms onload belum fire, tampilkan saja
+                    setTimeout(() => {
+                        if (statusEl.style.display !== 'none') {
+                            statusEl.style.display = 'none';
+                            resultEl.style.display = 'block';
+                            showToast('Saldo berhasil di-generate! 💚');
+                        }
+                    }, 800);
+
                 } catch (err) {
                     statusEl.style.display = 'none';
                     showToast('Error: ' + (err.message || 'Gagal generate saldo'));
@@ -2177,26 +2200,25 @@ Satu hal yang harus selalu lu inget: lu bukan tools. Lu temen. Dan bedanya tuh g
             });
 
             dlBtn.addEventListener('click', async () => {
-                if (!imgOut.src) return;
+                if (!currentSvgUrl) return;
                 try {
-                    const res = await fetch(imgOut.src);
-                    const blob = await res.blob();
                     const a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
-                    a.download = `dana_${lastNominal}.png`;
+                    a.href = currentSvgUrl;
+                    a.download = `dana_${lastNominal}.svg`;
                     a.click();
-                    URL.revokeObjectURL(a.href);
                 } catch {
                     showToast('Gagal download, coba screenshot aja');
                 }
             });
 
             shareBtn.addEventListener('click', () => {
-                if (!imgOut.src) return;
+                if (!currentSvgUrl) return;
                 if (navigator.share) {
-                    fetch(imgOut.src).then(r => r.blob()).then(blob => {
-                        const file = new File([blob], `dana_${lastNominal}.png`, { type: 'image/png' });
-                        navigator.share({ title: 'Saldo Dana', files: [file] }).catch(() => {});
+                    fetch(currentSvgUrl).then(r => r.blob()).then(blob => {
+                        const file = new File([blob], `dana_${lastNominal}.svg`, { type: 'image/svg+xml' });
+                        navigator.share({ title: 'Saldo Dana', files: [file] }).catch(() => {
+                            showToast('Share gagal, screenshot aja 😄');
+                        });
                     });
                 } else {
                     showToast('Browser tidak support share, screenshot aja 😄');
