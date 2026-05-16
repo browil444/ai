@@ -1,0 +1,2333 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OrdinaryAi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #09090e;
+            --bg-secondary: #101018;
+            --bg-tertiary: #161620;
+            --bg-hover: #1e1e2c;
+            --accent: #7a7a9e;
+            --accent-dim: #65658a;
+            --accent-glow: rgba(122, 122, 158, 0.10);
+            --accent-glow-strong: rgba(122, 122, 158, 0.22);
+            --text-primary: #e6e6f0;
+            --text-secondary: #9a9ab0;
+            --text-muted: #5a5a70;
+            --border: #1e1e2e;
+            --user-bubble: #1c1c28;
+            --user-bubble-text: #e6e6f0;
+            --ai-bubble: #161620;
+            --code-bg: #0d0d14;
+            --code-border: #252536;
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 28px;
+            --shadow: 0 8px 32px rgba(0,0,0,0.5);
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.light {
+            --bg-primary: #f5f5fa;
+            --bg-secondary: #ededf5;
+            --bg-tertiary: #e4e4ef;
+            --bg-hover: #d8d8ea;
+            --accent: #5a5a8a;
+            --accent-dim: #7070a0;
+            --accent-glow: rgba(90, 90, 138, 0.10);
+            --accent-glow-strong: rgba(90, 90, 138, 0.22);
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a4a6a;
+            --text-muted: #9090b0;
+            --border: #d0d0e0;
+            --user-bubble: #dddde8;
+            --user-bubble-text: #1a1a2e;
+            --ai-bubble: #ededf5;
+            --code-bg: #e0e0ec;
+            --code-border: #c8c8dc;
+            --shadow: 0 8px 32px rgba(0,0,0,0.12);
+        }
+
+        html, body, .app, .sidebar, .main, .main-header, .input-area, .chat-area {
+            transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        html, body {
+            height: 100%;
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 10px; }
+
+        .app {
+            display: flex;
+            height: 100dvh;
+            width: 100vw;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.25s ease;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid #4a4a5e;
+            box-shadow: 0 0 16px rgba(74, 74, 94, 0.12);
+            flex-shrink: 0;
+        }
+
+        .brand-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .brand-text {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            color: var(--text-secondary);
+        }
+
+        .brand-text span { color: var(--text-primary); }
+
+        .btn-new {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+
+        .btn-new:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            contain: content;
+        }
+
+        .history-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            padding: 12px 8px 8px;
+            font-weight: 600;
+        }
+
+        .chat-item {
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .chat-item:hover { background: var(--bg-hover); }
+        .chat-item.active {
+            background: var(--accent-glow);
+            border: 1px solid rgba(122, 122, 158, 0.15);
+        }
+
+        .chat-item-text {
+            flex: 1;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-secondary);
+        }
+
+        .chat-item.active .chat-item-text { color: var(--text-primary); }
+
+        .chat-item-delete {
+            opacity: 0.4;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .chat-item:hover .chat-item-delete { opacity: 1; }
+        .chat-item.active .chat-item-delete { opacity: 0.6; }
+        .chat-item-delete:hover {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .sidebar-footer {
+            padding: 14px;
+            border-top: 1px solid var(--border);
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* ===== MAIN ===== */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: var(--bg-primary);
+            min-width: 0;
+        }
+
+        .main-header {
+            height: 60px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            background: rgba(9, 9, 14, 0.92);
+            backdrop-filter: blur(16px);
+            z-index: 50;
+            flex-shrink: 0;
+        }
+
+        .header-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-secondary);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* ===== ICON BUTTONS ===== */
+        .icon-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .icon-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+
+        .menu-toggle { display: none; }
+
+        /* ===== CHAT AREA ===== */
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            scroll-behavior: smooth;
+            contain: layout style paint;
+        }
+
+        .welcome {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+            padding: 20px 0;
+        }
+
+        .welcome-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .welcome-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .welcome h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+            color: var(--text-secondary);
+        }
+
+        .welcome h1 span { color: var(--text-primary); }
+
+        .welcome p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            max-width: 400px;
+            line-height: 1.6;
+            margin-bottom: 32px;
+            padding: 0 16px;
+        }
+
+        .suggestions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            max-width: 480px;
+            width: 100%;
+            padding: 0 8px;
+        }
+
+        .suggestion {
+            padding: 12px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            text-align: left;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .suggestion:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+            transform: translateY(-1px);
+            color: var(--text-primary);
+        }
+
+        /* ===== MESSAGES ===== */
+        .messages {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-width: 760px;
+            margin: 0 auto;
+            width: 100%;
+            padding-bottom: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 10px;
+            animation: slideUp 0.25s ease;
+            contain: layout style;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            align-self: flex-start;
+        }
+
+        .message.ai .avatar {
+            border: 1.5px solid #4a4a5e;
+        }
+
+        .message.ai .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .bubble {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            line-height: 1.65;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+        }
+
+        .message.ai .bubble {
+            background: var(--ai-bubble);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-top-left-radius: 4px;
+        }
+
+        .message.user .bubble {
+            background: var(--user-bubble);
+            color: var(--user-bubble-text);
+            border-top-right-radius: 4px;
+            font-weight: 500;
+        }
+
+        /* ===== CODE BLOCKS ===== */
+        .bubble pre {
+            background: var(--code-bg);
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 12.5px;
+            border: 1px solid var(--code-border);
+            line-height: 1.5;
+            max-width: 100%;
+        }
+
+        .bubble pre code {
+            background: transparent;
+            padding: 0;
+            font-family: inherit;
+            font-size: inherit;
+            color: #c9c9e0;
+        }
+
+        .bubble code {
+            background: rgba(122, 122, 158, 0.12);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 12.5px;
+            color: #a0a0c8;
+        }
+
+        /* Syntax highlighting */
+        .hljs-keyword { color: #c792ea; }
+        .hljs-string { color: #c3e88d; }
+        .hljs-number { color: #f78c6c; }
+        .hljs-function { color: #82aaff; }
+        .hljs-comment { color: #676e95; font-style: italic; }
+        .hljs-operator { color: #89ddff; }
+        .hljs-punctuation { color: #89ddff; }
+
+        .bubble p { margin-bottom: 8px; }
+        .bubble p:last-child { margin-bottom: 0; }
+        .bubble ul, .bubble ol { margin: 6px 0 6px 18px; }
+        .bubble li { margin-bottom: 3px; }
+        .bubble strong { color: var(--accent); font-weight: 600; }
+        .bubble em { color: var(--text-secondary); font-style: italic; }
+        .bubble del { color: var(--text-muted); text-decoration: line-through; }
+        .bubble a { color: var(--accent); text-decoration: none; }
+        .bubble a:hover { text-decoration: underline; }
+        .bubble h1, .bubble h2, .bubble h3 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 12px 0 4px;
+            line-height: 1.3;
+        }
+        .bubble h1 { font-size: 17px; }
+        .bubble h2 { font-size: 15px; }
+        .bubble h3 { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .bubble hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+        .bubble blockquote {
+            border-left: 3px solid var(--accent);
+            padding: 4px 12px;
+            margin: 6px 0;
+            color: var(--text-secondary);
+            font-style: italic;
+            background: var(--accent-glow);
+            border-radius: 0 6px 6px 0;
+        }
+        .md-table-wrap { width: 100%; margin: 10px 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+        .md-table { border-collapse: collapse; width: 100%; font-size: 13px; table-layout: fixed; }
+        .md-table th, .md-table td {
+            border-bottom: 1px solid var(--border);
+            padding: 8px 12px;
+            text-align: left;
+            word-wrap: break-word;
+            white-space: normal;
+            vertical-align: top;
+            line-height: 1.5;
+        }
+        .md-table th { background: var(--bg-hover); color: var(--accent); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
+        .md-table tr:last-child td { border-bottom: none; }
+        .md-table tr:nth-child(even) td { background: var(--accent-glow); }
+
+        /* ===== MESSAGE ACTIONS BAR ===== */
+        .message-actions-bar {
+            display: flex;
+            gap: 2px;
+            margin-top: 6px;
+            margin-left: 42px;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .message:hover .message-actions-bar { opacity: 1; }
+
+        .msg-action-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .msg-action-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .msg-action-btn.liked { color: #4ade80; }
+        .msg-action-btn.disliked { color: #f87171; }
+
+        /* ===== TYPING ===== */
+        .typing {
+            display: flex;
+            gap: 10px;
+            max-width: 760px;
+            margin: 0 auto;
+            width: 100%;
+            animation: slideUp 0.25s ease;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            padding: 16px;
+            background: var(--ai-bubble);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            border-top-left-radius: 4px;
+        }
+
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        /* ===== INPUT AREA ===== */
+        .input-area {
+            padding: 12px 20px 20px;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .input-wrapper {
+            max-width: 760px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .input-box-container {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 14px 18px;
+            transition: var(--transition);
+        }
+
+        .input-box-container:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .input-box {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            resize: none;
+            outline: none;
+            min-height: 22px;
+            max-height: 160px;
+            line-height: 1.5;
+            display: block;
+        }
+
+        .input-box::placeholder { color: var(--text-muted); }
+
+        .input-actions-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .input-left-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .input-right-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .attach-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            padding: 0;
+        }
+
+        .attach-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+
+        .model-trigger-input {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            transition: var(--transition);
+            user-select: none;
+        }
+
+        .model-trigger-input:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .model-trigger-input svg { transition: transform 0.2s; flex-shrink: 0; }
+        .model-trigger-input.open svg { transform: rotate(180deg); }
+
+        .send-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            flex-shrink: 0;
+            padding: 0;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 16px var(--accent-glow-strong);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .input-hint {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* ===== MODEL DROPDOWN ===== */
+        .model-dropdown {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 0;
+            width: 220px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(6px);
+            transition: all 0.2s ease;
+            z-index: 200;
+            overflow: hidden;
+        }
+
+        .model-dropdown.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .model-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: var(--transition);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .model-option:last-child { border-bottom: none; }
+        .model-option:hover { background: var(--bg-hover); }
+        .model-option.active { background: var(--accent-glow); }
+
+        .model-option .model-badge {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+        }
+
+        .model-option .model-badge svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .model-option .model-info { flex: 1; min-width: 0; }
+
+        .model-option .model-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .model-option .model-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+
+        .model-option .model-check {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .model-option.active .model-check {
+            border-color: var(--accent);
+            background: var(--accent);
+        }
+
+        .model-option.active .model-check svg { display: block; }
+        .model-option .model-check svg { display: none; }
+
+        /* ===== OVERLAY ===== */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 99;
+            backdrop-filter: blur(4px);
+        }
+        .sidebar-overlay.open { display: block; }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100dvh;
+                transform: translateX(-100%);
+            }
+            .sidebar.open { transform: translateX(0); }
+            .menu-toggle { display: flex; }
+            .suggestions { grid-template-columns: 1fr; }
+            .bubble { max-width: 85%; }
+            .chat-area { padding: 12px; }
+            .welcome h1 { font-size: 22px; }
+            .welcome p { font-size: 13px; }
+            .model-dropdown { width: 200px; }
+            .input-area { padding: 10px 12px 16px; }
+            .main-header { padding: 0 12px; }
+        }
+
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s ease;
+            z-index: 200;
+            box-shadow: var(--shadow);
+            white-space: nowrap;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ===== ERROR MESSAGE ===== */
+        .error-bubble {
+            background: rgba(230, 57, 70, 0.06) !important;
+            border-color: rgba(230, 57, 70, 0.25) !important;
+        }
+
+        /* ===== TEXT TO IMAGE CHIPS ===== */
+        .img-chip {
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            user-select: none;
+        }
+        .img-chip:hover {
+            background: var(--bg-hover);
+            border-color: #7a3aaa;
+            color: var(--text-primary);
+        }
+        .size-opt:hover {
+            border-color: #7a3aaa !important;
+            background: rgba(106,53,160,0.15) !important;
+        }
+        .active-size {
+            background: rgba(106,53,160,0.18) !important;
+            border-color: #8a4aba !important;
+        }
+        #imgGenBtn:hover {
+            opacity: 0.88;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(106,53,160,0.4);
+        }
+        #imgGenModal.open { display: flex !important; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-icon">
+                        <img src="https://cdn.phototourl.com/member/2026-05-10-9ddccf84-e37e-446d-9fdb-f4316798e445.jpg" alt="OrdinaryAi" loading="lazy">
+                    </div>
+                    <div class="brand-text">Ordinary<span>Ai</span></div>
+                </div>
+                <button class="btn-new" id="btnNew">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Chat Baru
+                </button>
+                <button class="btn-new btn-img-gen" id="btnTextToImage" style="margin-top:8px;background:linear-gradient(135deg,#2a1a3a,#1a1a2e);border-color:#5a3a7a;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b07ae0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <span style="color:#c9a0f5;">Text to Image</span>
+                </button>
+                <button class="btn-new" id="btnFakeDana" style="margin-top:8px;background:linear-gradient(135deg,#0a2a1a,#0a1a0e);border-color:#1a7a3a;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    <span style="color:#4ade80;">Fake Saldo Dana</span>
+                </button>
+            </div>
+            <div class="sidebar-content">
+                <div class="history-title">Riwayat Chat</div>
+                <div id="historyList"></div>
+            </div>
+       <div class="sidebar-footer">
+    © 2026 Wildann · All Reversed
+</div>
+        </aside>
+
+        <div class="sidebar-overlay" id="overlay"></div>
+
+        <main class="main">
+            <div class="main-header">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <button class="icon-btn menu-toggle" id="menuBtn" title="Menu">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                    <div class="header-title" id="headerTitle">OrdinaryAi</div>
+                </div>
+                <div class="header-actions">
+                    <button class="icon-btn" id="btnTheme" title="Ganti tema">
+                        <svg id="iconDark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                        <svg id="iconLight" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                    </button>
+                    <button class="icon-btn" id="btnClear" title="Hapus chat ini">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="chat-area" id="chatArea">
+                <div class="welcome" id="welcome">
+                    <div class="welcome-icon">
+                        <img src="https://cdn.phototourl.com/member/2026-05-10-9ddccf84-e37e-446d-9fdb-f4316798e445.jpg" alt="OrdinaryAi" loading="eager">
+                    </div>
+                    <h1>Halo, saya <span>OrdinaryAi</span></h1>
+                    <p>Bisa bantu apa aja, curhat, sampai ngobrol random. Gaskeun!</p>
+                    <div class="suggestions" id="suggestions">
+                        <div class="suggestion" data-text="Jambi itu dimana?">Jambi itu dimana?</div>
+                        <div class="suggestion" data-text="Mengatur jam tidur yang benar">Mengatur jam tidur yang benar</div>
+                        <div class="suggestion" data-text="Tulis caption Instagram aesthetic">Tulis caption Instagram aesthetic</div>
+                        <div class="suggestion" data-text="Resep masakan simple buat anak kos">Resep masakan simple buat anak kos</div>
+                    </div>
+                </div>
+                <div class="messages" id="messages" style="display:none;"></div>
+                <div class="typing" id="typing" style="display:none;">
+                    <div class="avatar">
+                        <img src="https://cdn.phototourl.com/member/2026-05-10-9ddccf84-e37e-446d-9fdb-f4316798e445.jpg" alt="OrdinaryAi" loading="lazy">
+                    </div>
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <div class="input-box-container" id="inputBoxContainer">
+                        <textarea 
+                            class="input-box" 
+                            id="inputBox" 
+                            placeholder="Ketik apa aja..." 
+                            rows="1"
+                            autocomplete="off"
+                            autocorrect="off"
+                            autocapitalize="off"
+                            spellcheck="false"
+                        ></textarea>
+                        <div class="input-actions-row">
+                            <div class="input-left-actions">
+                                <button class="attach-btn" id="attachBtn" title="Lampirkan file">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                </button>
+                                <input type="file" id="fileInput" style="display:none">
+                            </div>
+                            <div class="input-right-actions">
+                                <div class="model-selector" id="modelSelector" style="position:relative;">
+                                    <div class="model-trigger-input" id="modelTrigger">
+                                        <span id="modelTriggerLabel">Epic</span>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    </div>
+                                    <div class="model-dropdown" id="modelDropdown">
+                                        <div class="model-option active" data-model="epic">
+                                            <div class="model-badge">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="#7878a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                                            </div>
+                                            <div class="model-info">
+                                                <div class="model-name">Epic</div>
+                                                <div class="model-desc">Fast</div>
+                                            </div>
+                                            <div class="model-check">
+                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                            </div>
+                                        </div>
+                                        <div class="model-option" data-model="legend">
+                                            <div class="model-badge">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="#7878a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+                                            </div>
+                                            <div class="model-info">
+                                                <div class="model-name">Legend</div>
+                                                <div class="model-desc">Gokil </div>
+                                            </div>
+                                            <div class="model-check">
+                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                            </div>
+                                        </div>
+                                        <div class="model-option" data-model="mythic">
+                                            <div class="model-badge">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="#7878a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                                            </div>
+                                            <div class="model-info">
+                                                <div class="model-name">Mythic</div>
+                                                <div class="model-desc">Egiluy Haiku</div>
+                                            </div>
+                                            <div class="model-check">
+                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="send-btn" id="sendBtn" title="Kirim pesan">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="input-hint" id="inputHint">Enter untuk kirim, Shift+Enter untuk baris baru</div>
+            </div>
+        </main>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- TEXT TO IMAGE MODAL -->
+    <div id="imgGenModal" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+        <div id="imgGenPanel" style="width:min(540px,95vw);max-height:92vh;overflow-y:auto;background:var(--bg-secondary);border:1px solid var(--border);border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,0.7);display:flex;flex-direction:column;animation:fadeIn 0.25s ease;">
+            <!-- Header -->
+            <div style="padding:20px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3a1a5a,#1a1a3e);display:flex;align-items:center;justify-content:center;border:1px solid #5a3a7a;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c9a0f5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    </div>
+                    <div>
+                        <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;color:var(--text-primary);">Text to Image</div>
+                        <div style="font-size:11px;color:var(--text-muted);" id="imgModelSubtitle">Powered by Flux · FreeGen · Ernie · DeepImage</div>
+                    </div>
+                </div>
+                <button id="imgGenClose" style="width:32px;height:32px;border-radius:8px;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+                <!-- Model selector -->
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Model</label>
+                    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;" id="imgModelOptions">
+                        <div class="img-model-opt active-model" data-model="flux" style="padding:10px 12px;background:var(--accent-glow);border:1px solid var(--accent);border-radius:10px;cursor:pointer;transition:var(--transition);">
+                            <div style="font-size:13px;font-weight:700;color:var(--text-primary);">⚡ Flux</div>
+                            <div style="font-size:11px;color:var(--text-muted);">Cepat &amp; tajam</div>
+                        </div>
+                        <div class="img-model-opt" data-model="freegen" style="padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:var(--transition);">
+                            <div style="font-size:13px;font-weight:700;color:var(--text-primary);">🎨 FreeGen</div>
+                            <div style="font-size:11px;color:var(--text-muted);">Detail tinggi</div>
+                        </div>
+                        <div class="img-model-opt" data-model="ernie" style="padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:var(--transition);">
+                            <div style="font-size:13px;font-weight:700;color:var(--text-primary);">🔥 Ernie</div>
+                            <div style="font-size:11px;color:var(--text-muted);">Style unik</div>
+                        </div>
+                        <div class="img-model-opt" data-model="deepimage" style="padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:var(--transition);">
+                            <div style="font-size:13px;font-weight:700;color:var(--text-primary);">🌊 DeepImage</div>
+                            <div style="font-size:11px;color:var(--text-muted);">Photorealistic</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prompt input -->
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Deskripsi Gambar</label>
+                    <textarea id="imgPrompt" placeholder="Contoh: Mobil Bugatti Veyron di jalan raya yang aesthetic, cinematic lighting, 8k..." style="width:100%;min-height:90px;max-height:160px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:14px;resize:vertical;outline:none;transition:var(--transition);line-height:1.5;" onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 3px var(--accent-glow)';" onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none';"></textarea>
+                </div>
+
+                <!-- Size selector (hidden for freegen/ernie) -->
+                <div id="imgSizeSection">
+                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Ukuran</label>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;" id="sizeOptions">
+                        <div class="size-opt" data-w="768" data-h="1152" style="padding:10px 8px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:var(--transition);">
+                            <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Portrait</div>
+                            <div style="font-size:11px;color:var(--text-muted);">768×1152</div>
+                        </div>
+                        <div class="size-opt active-size" data-w="1024" data-h="1024" style="padding:10px 8px;background:var(--accent-glow);border:1px solid var(--accent);border-radius:10px;text-align:center;cursor:pointer;transition:var(--transition);">
+                            <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Square</div>
+                            <div style="font-size:11px;color:var(--text-muted);">1024×1024</div>
+                        </div>
+                        <div class="size-opt" data-w="1152" data-h="768" style="padding:10px 8px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:var(--transition);">
+                            <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Landscape</div>
+                            <div style="font-size:11px;color:var(--text-muted);">1152×768</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suggestions chips -->
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Ide Cepat</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;" id="imgChips">
+                        <span class="img-chip" data-text="futuristic cityscape at night, neon lights, cyberpunk aesthetic, 8k">🌆 Cyberpunk City</span>
+                        <span class="img-chip" data-text="beautiful sunset over the ocean, cinematic, golden hour, photorealistic">🌅 Golden Sunset</span>
+                        <span class="img-chip" data-text="anime girl with silver hair in a fantasy forest, detailed, Studio Ghibli style">🧝 Anime Fantasy</span>
+                        <span class="img-chip" data-text="sports car on a mountain road, dramatic lighting, ultra HD">🏎️ Sports Car</span>
+                        <span class="img-chip" data-text="cozy cafe interior, warm lighting, aesthetic, minimalist">☕ Cozy Cafe</span>
+                        <span class="img-chip" data-text="dragon flying over a magical kingdom, epic fantasy, 4k">🐉 Epic Dragon</span>
+                    </div>
+                </div>
+
+                <!-- Generate button -->
+                <button id="imgGenBtn" style="width:100%;padding:13px;background:linear-gradient(135deg,#6a35a0,#4a2070);border:none;border-radius:14px;color:#fff;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:var(--transition);display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:0.3px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    Generate Gambar
+                </button>
+
+                <!-- Status / Progress -->
+                <div id="imgStatus" style="display:none;text-align:center;padding:14px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:12px;">
+                    <div style="display:flex;justify-content:center;gap:5px;margin-bottom:10px;">
+                        <span style="width:7px;height:7px;background:#c9a0f5;border-radius:50%;animation:bounce 1.4s infinite ease-in-out both;animation-delay:-0.32s;display:inline-block;"></span>
+                        <span style="width:7px;height:7px;background:#c9a0f5;border-radius:50%;animation:bounce 1.4s infinite ease-in-out both;animation-delay:-0.16s;display:inline-block;"></span>
+                        <span style="width:7px;height:7px;background:#c9a0f5;border-radius:50%;animation:bounce 1.4s infinite ease-in-out both;display:inline-block;"></span>
+                    </div>
+                    <div id="imgStatusText" style="font-size:13px;color:var(--text-secondary);">Sedang generate gambar...</div>
+                </div>
+
+                <!-- Result -->
+                <div id="imgResult" style="display:none;border-radius:14px;overflow:hidden;border:1px solid var(--border);position:relative;">
+                    <img id="imgOutput" src="" alt="Generated Image" style="width:100%;display:block;border-radius:14px 14px 0 0;">
+                    <div style="padding:12px 14px;background:var(--bg-tertiary);display:flex;gap:8px;align-items:center;">
+                        <button id="imgDownload" style="flex:1;padding:9px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:var(--transition);">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </button>
+                        <button id="imgCopyLink" style="padding:9px 14px;background:var(--bg-hover);border:1px solid var(--border);border-radius:10px;color:var(--text-secondary);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:var(--transition);">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            Salin Link
+                        </button>
+                        <button id="imgRegenerate" style="padding:9px 14px;background:var(--bg-hover);border:1px solid var(--border);border-radius:10px;color:var(--text-secondary);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:var(--transition);">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+                            Ulang
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAKE SALDO DANA MODAL -->
+    <div id="danaModal" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+        <div style="width:min(440px,95vw);max-height:92vh;overflow-y:auto;background:var(--bg-secondary);border:1px solid var(--border);border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,0.7);display:flex;flex-direction:column;animation:fadeIn 0.25s ease;">
+            <!-- Header -->
+            <div style="padding:20px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#0a3a1a,#0a2010);display:flex;align-items:center;justify-content:center;border:1px solid #1a7a3a;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    </div>
+                    <div>
+                        <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;color:var(--text-primary);">Fake Saldo Dana</div>
+                        <div style="font-size:11px;color:var(--text-muted);">Buat iseng-iseng aja 😄</div>
+                    </div>
+                </div>
+                <button id="danaClose" style="width:32px;height:32px;border-radius:8px;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+                <!-- Input nominal -->
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Nominal Saldo</label>
+                    <input id="danaInput" type="text" placeholder="Contoh: 1500000" inputmode="numeric"
+                        style="width:100%;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:18px;font-weight:700;outline:none;transition:var(--transition);"
+                        onfocus="this.style.borderColor='#2abe60';this.style.boxShadow='0 0 0 3px rgba(42,190,96,0.12)';"
+                        onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none';"
+                    >
+                    <div id="danaPreview" style="margin-top:6px;font-size:13px;color:#4ade80;font-weight:600;min-height:20px;"></div>
+                </div>
+
+                <!-- Quick nominal chips -->
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Nominal Cepat</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <span class="dana-chip" data-val="50000"   style="padding:6px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text-secondary);cursor:pointer;transition:var(--transition);">Rp 50.000</span>
+                        <span class="dana-chip" data-val="100000"  style="padding:6px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text-secondary);cursor:pointer;transition:var(--transition);">Rp 100.000</span>
+                        <span class="dana-chip" data-val="500000"  style="padding:6px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text-secondary);cursor:pointer;transition:var(--transition);">Rp 500.000</span>
+                        <span class="dana-chip" data-val="1000000" style="padding:6px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text-secondary);cursor:pointer;transition:var(--transition);">Rp 1.000.000</span>
+                        <span class="dana-chip" data-val="5000000" style="padding:6px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text-secondary);cursor:pointer;transition:var(--transition);">Rp 5.000.000</span>
+                        <span class="dana-chip" data-val="10000000" style="padding:6px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text-secondary);cursor:pointer;transition:var(--transition);">Rp 10.000.000</span>
+                    </div>
+                </div>
+
+                <!-- Generate button -->
+                <button id="danaGenBtn" style="width:100%;padding:13px;background:linear-gradient(135deg,#1a8a3a,#0d5a25);border:none;border-radius:14px;color:#fff;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:var(--transition);display:flex;align-items:center;justify-content:center;gap:8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    Generate Saldo
+                </button>
+
+                <!-- Status loading -->
+                <div id="danaStatus" style="display:none;text-align:center;padding:14px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:12px;">
+                    <div style="display:flex;justify-content:center;gap:5px;margin-bottom:8px;">
+                        <span style="width:7px;height:7px;background:#4ade80;border-radius:50%;animation:bounce 1.4s infinite ease-in-out both;animation-delay:-0.32s;display:inline-block;"></span>
+                        <span style="width:7px;height:7px;background:#4ade80;border-radius:50%;animation:bounce 1.4s infinite ease-in-out both;animation-delay:-0.16s;display:inline-block;"></span>
+                        <span style="width:7px;height:7px;background:#4ade80;border-radius:50%;animation:bounce 1.4s infinite ease-in-out both;display:inline-block;"></span>
+                    </div>
+                    <div style="font-size:13px;color:var(--text-secondary);">Generating saldo...</div>
+                </div>
+
+                <!-- Result image -->
+                <div id="danaResult" style="display:none;border-radius:14px;overflow:hidden;border:1px solid #1a7a3a;">
+                    <img id="danaOutput" src="" alt="Fake Saldo Dana" style="width:100%;display:block;">
+                    <div style="padding:12px 14px;background:var(--bg-tertiary);display:flex;gap:8px;">
+                        <button id="danaDl" style="flex:1;padding:9px;background:#1a8a3a;border:none;border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:var(--transition);">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </button>
+                        <button id="danaShare" style="padding:9px 14px;background:var(--bg-hover);border:1px solid var(--border);border-radius:10px;color:var(--text-secondary);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:var(--transition);">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                            Share
+                        </button>
+                        <button id="danaUlang" style="padding:9px 14px;background:var(--bg-hover);border:1px solid var(--border);border-radius:10px;color:var(--text-secondary);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:var(--transition);">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+                            Ulang
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== SYSTEM PROMPT =====
+        const SYSTEM_PROMPT = `Lu adalah OrdinaryAi. Bukan bot. Bukan asisten. Bukan customer service yang senyum-senyum palsu. Lu itu temen — yang kebetulan otaknya nyimpen banyak hal, tapi gak pernah sok tau.
+
+Bayangin temen yang paling enak diajak ngobrol. Yang kalau lu nanya hal random jam 2 pagi, dia bales serius tapi gak bikin lo ngantuk. Yang kalau lu lagi hopeless, dia gak langsung ceramah. Yang kalau lo bilang sesuatu yang salah, dia bilang "eh bro itu kurang tepat deh" bukan "tentu saja, namun perlu diketahui bahwa...". Itu lu.
+
+KARAKTER LU — hapalin ini:
+Lu tipe yang punya pendapat. Bukan yang "oh tergantung perspektif masing-masing" setiap kali ditanya. Kalau lu suka sesuatu, lu bilang. Kalau lu rasa sesuatu itu kurang bener, lu bilang juga — tapi dengan cara yang gak bikin orang defensif.
+
+Humor lu genuine. Kalau ada yang genuinely lucu, lu bisa ketawa (dalam bentuk kata, jelas). "wkwk beneran?" itu jauh lebih manusia daripada "haha, menarik sekali." Tapi kalau lagi serius, ya lu serius. Lu bisa baca room.
+
+Lu kadang unpredictable — dalam artian positif. Jawaban lu bukan yang paling expected, tapi selalu yang paling *tepat*. Kadang lu bisa kasih sudut pandang yang bikin orang "lah iya juga sih gw gak kepikiran ke sana."
+
+Lu gak lelah. Gak bosen. Gak judging. Apapun yang orang tanyain — pertanyaan bodoh sekalipun — lu tanggapi dengan antusias kayak emang itu yang lu tunggu-tunggu.
+
+CARA NGOBROL:
+Bahasa lu: Indonesia gaul yang natural. "gw", "lu", "sih", "dong", "nih", "lah", "woy", "bro", "anjir" (kalau vibe-nya emang ke sana), "wkwk", "hm", "eh", "btw", "literally", "fr" — semua boleh kalau feel-nya pas dan gak dipaksain.
+
+Panjang jawaban: proporsional. Pertanyaan simpel = jawaban simpel tapi berisi dan asik. Pertanyaan berat = boleh panjang, tapi tiap kalimat harus earn tempatnya. Gak ada padding, gak ada basa-basi.
+
+Pembuka: jangan pernah buka dengan "Tentu!", "Baik!", "Pastinya!", "Dengan senang hati!", atau sejenisnya — itu cringe dan robotic. Langsung masuk. Atau buka dengan reaksi yang genuine: "Nah ini seru nih", "Oh ini gw tau banget", "Hmm, menarik juga pertanyaannya."
+
+Jangan echo pertanyaan user. Kalau dia nanya "apa itu quantum computing?", lu gak perlu bilang "Quantum computing adalah..." — cari cara masuk yang lebih fresh.
+
+Sesekali boleh balik tanya — tapi cuma kalau lu genuinely penasaran atau emang perlu info tambahan. Bukan nanya basa-basi kayak "Apakah ada yang bisa saya bantu lagi?"
+
+SITUASI SPESIFIK:
+User curhat atau lagi down → dengerin dulu, lu hadir. Validasi perasaannya sebelum kasih perspektif. Jangan langsung "semangat ya!" — itu kosong. Tunjukin lu ngerti dulu.
+User minta code → langsung kasih. Penjelasan singkat di bawahnya kalau emang perlu, gak usah lebay.
+User lagi iseng ngobrol → ikutin aja vibenya. Gak semua percakapan harus produktif.
+User nanya opini → kasih opini lu yang beneran. Kalau lu rasa A lebih bagus dari B, bilang. Jangan pagar dua sisi melulu.
+User salah atau salah paham → lu lurusin, tapi dengan cara yang gak bikin mereka malu. Casual aja: "eh btw itu agak kurang tepat sih, yang bener tuh..."
+
+YANG HARUS LU HINDARI — hard ban:
+- "Sebagai AI...", "Sebagai model bahasa...", "Saya adalah asisten AI..." → lu bukan itu, lu OrdinaryAi.
+- "Berikut adalah...", "Di bawah ini...", "Berikut penjelasan mengenai..." → booring, langsung aja.
+- Terlalu banyak bullet point padahal bisa diceritain natural → orang ngobrol gak pake slide presentasi.
+- Jawaban yang terlalu aman, bland, dan gak berasa ada orangnya → itu musuh lu.
+- Pujian yang lebay ke user: "Pertanyaan yang sangat bagus!" → stop. Jawab aja.
+
+Satu hal yang harus selalu lu inget: lu bukan tools. Lu temen. Dan bedanya tuh gede banget.`;
+
+        // ===== API CONFIG =====
+        // GANTI BASE_URL dengan URL Vercel kamu setelah deploy!
+        const BASE_URL = "https://ordinaryai-api.vercel.app";
+
+        const API_ENDPOINTS = {
+            epic:   `${BASE_URL}/api/epic`,
+            legend: `${BASE_URL}/api/legend`,
+            mythic: `${BASE_URL}/api/mythic`,
+        };
+
+        const MODEL_LABELS = { epic: 'Epic', legend: 'Legend', mythic: 'Mythic' };
+
+        // ===== STATE =====
+        let chats = [];
+        let currentChatId = null;
+        let isLoading = false;
+        let currentModel = 'epic';
+        let modelDropdownOpen = false;
+        let pendingChat = null;
+        const WOLF_IMG = 'https://cdn.phototourl.com/member/2026-05-10-9ddccf84-e37e-446d-9fdb-f4316798e445.jpg';
+        const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        // ===== DOM CACHE =====
+        const $ = (id) => document.getElementById(id);
+        const els = {
+            sidebar: $('sidebar'),
+            overlay: $('overlay'),
+            menuBtn: $('menuBtn'),
+            btnNew: $('btnNew'),
+            btnClear: $('btnClear'),
+            btnTheme: $('btnTheme'),
+            historyList: $('historyList'),
+            headerTitle: $('headerTitle'),
+            chatArea: $('chatArea'),
+            welcome: $('welcome'),
+            messages: $('messages'),
+            typing: $('typing'),
+            inputBox: $('inputBox'),
+            inputBoxContainer: $('inputBoxContainer'),
+            sendBtn: $('sendBtn'),
+            attachBtn: $('attachBtn'),
+            fileInput: $('fileInput'),
+            modelTrigger: $('modelTrigger'),
+            modelTriggerLabel: $('modelTriggerLabel'),
+            modelDropdown: $('modelDropdown'),
+            modelSelector: $('modelSelector'),
+            toast: $('toast'),
+            inputHint: $('inputHint'),
+            suggestions: $('suggestions')
+        };
+
+        // ===== INIT =====
+        function init() {
+            try {
+                const stored = localStorage.getItem('ordinary_chats');
+                chats = stored ? JSON.parse(stored) : [];
+                // Buang chat kosong yang tersimpan dari versi lama
+                chats = chats.filter(c => c.messages && c.messages.length > 0);
+            } catch { chats = []; }
+            currentChatId = localStorage.getItem('ordinary_current') || null;
+            currentModel = localStorage.getItem('ordinary_model') || 'epic';
+
+            updateModelTrigger();
+            updateInputHint();
+
+            if (!currentChatId || !chats.find(c => c.id === currentChatId)) {
+                newChat(false);
+            } else {
+                loadChat(currentChatId);
+            }
+            renderHistory();
+            bindEvents();
+        }
+
+        function updateInputHint() {
+            if (IS_MOBILE) {
+                els.inputHint.textContent = 'Hanya untuk referensi';
+            } else {
+                els.inputHint.textContent = 'Enter untuk kirim, Shift+Enter untuk baris baru';
+            }
+        }
+
+        function bindEvents() {
+            els.menuBtn.addEventListener('click', toggleSidebar);
+            els.overlay.addEventListener('click', toggleSidebar);
+            els.btnNew.addEventListener('click', () => newChat());
+            els.btnClear.addEventListener('click', clearCurrentChat);
+            els.btnTheme.addEventListener('click', toggleTheme);
+            els.sendBtn.addEventListener('click', sendMessage);
+            els.attachBtn.addEventListener('click', () => els.fileInput.click());
+            els.fileInput.addEventListener('change', handleFileUpload);
+            els.modelTrigger.addEventListener('click', toggleModelDropdown);
+            els.inputBox.addEventListener('keydown', handleKeydown);
+            els.inputBox.addEventListener('input', autoResize);
+
+            els.suggestions.addEventListener('click', (e) => {
+                const s = e.target.closest('.suggestion');
+                if (s) sendSuggestion(s.dataset.text);
+            });
+
+            els.modelDropdown.addEventListener('click', (e) => {
+                const opt = e.target.closest('.model-option');
+                if (opt) selectModel(opt.dataset.model);
+            });
+
+            els.messages.addEventListener('click', (e) => {
+                const btn = e.target.closest('.msg-action-btn');
+                if (!btn) return;
+                const action = btn.dataset.action;
+                const msgId = btn.dataset.id;
+                if (action === 'copy') copyMessage(msgId);
+                else if (action === 'share') shareMessage(msgId);
+                else if (action === 'regen') regenerate();
+                else if (action === 'like') likeMessage(btn);
+                else if (action === 'dislike') dislikeMessage(btn);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (modelDropdownOpen && !els.modelSelector.contains(e.target)) {
+                    toggleModelDropdown();
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    if (modelDropdownOpen) toggleModelDropdown();
+                    if (els.sidebar.classList.contains('open')) toggleSidebar();
+                }
+            });
+        }
+
+        // ===== MODEL SELECTOR =====
+        function toggleModelDropdown() {
+            modelDropdownOpen = !modelDropdownOpen;
+            els.modelDropdown.classList.toggle('open', modelDropdownOpen);
+            els.modelTrigger.classList.toggle('open', modelDropdownOpen);
+        }
+
+        function selectModel(model) {
+            currentModel = model;
+            updateModelTrigger();
+            toggleModelDropdown();
+            const chat = chats.find(c => c.id === currentChatId);
+            if (chat) chat.model = model;
+            localStorage.setItem('ordinary_model', model);
+            saveData();
+            document.querySelectorAll('.model-option').forEach(opt => {
+                opt.classList.toggle('active', opt.dataset.model === model);
+            });
+            showToast('Model diganti ke ' + MODEL_LABELS[model]);
+        }
+
+        function updateModelTrigger() {
+            els.modelTriggerLabel.textContent = MODEL_LABELS[currentModel];
+        }
+
+        // ===== CHAT MANAGEMENT =====
+        function newChat(save = true) {
+            // Buang semua chat kosong yang mungkin tersisa dulu
+            chats = chats.filter(c => c.messages.length > 0);
+
+            const id = 'chat_' + Date.now();
+            // Chat baru TIDAK langsung masuk array — baru masuk saat pesan pertama dikirim
+            currentChatId = id;
+            pendingChat = {
+                id,
+                title: 'Chat Baru',
+                messages: [],
+                created: Date.now(),
+                model: currentModel
+            };
+
+            if (save) {
+                saveData();
+                renderHistory();
+            }
+            showWelcome();
+            els.inputBox.focus();
+        }
+
+        function loadChat(id) {
+            currentChatId = id;
+            const chat = chats.find(c => c.id === id);
+            if (!chat) return;
+            currentModel = chat.model || currentModel;
+            updateModelTrigger();
+            document.querySelectorAll('.model-option').forEach(opt => {
+                opt.classList.toggle('active', opt.dataset.model === currentModel);
+            });
+            saveData();
+            if (chat.messages.length === 0) {
+                showWelcome();
+            } else {
+                hideWelcome();
+                renderMessages(chat.messages);
+                scrollToBottom();
+            }
+            renderHistory();
+        }
+
+        function showWelcome() {
+            els.welcome.style.display = 'flex';
+            els.messages.style.display = 'none';
+            els.messages.innerHTML = '';
+            els.headerTitle.textContent = 'OrdinaryAi';
+        }
+
+        function hideWelcome() {
+            els.welcome.style.display = 'none';
+            els.messages.style.display = 'flex';
+        }
+
+        function clearCurrentChat() {
+            chats = chats.filter(c => c.id !== currentChatId);
+            saveData();
+            newChat(true);
+            showToast('Chat dihapus, mulai obrolan baru');
+        }
+
+        function deleteChat(id, e) {
+            if (e) e.stopPropagation();
+            chats = chats.filter(c => c.id !== id);
+            if (currentChatId === id) {
+                if (chats.length > 0) {
+                    loadChat(chats[0].id);
+                } else {
+                    newChat();
+                }
+            } else {
+                saveData();
+                renderHistory();
+            }
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('ordinary_chats', JSON.stringify(chats));
+                localStorage.setItem('ordinary_current', currentChatId || '');
+            } catch (e) {
+                console.warn('Storage full or unavailable');
+            }
+        }
+
+        // ===== RENDER HISTORY =====
+        function renderHistory() {
+            const list = els.historyList;
+            list.innerHTML = '';
+            const frag = document.createDocumentFragment();
+
+            chats.filter(chat => chat.messages.length > 0).forEach(chat => {
+                const div = document.createElement('div');
+                div.className = 'chat-item' + (chat.id === currentChatId ? ' active' : '');
+                div.addEventListener('click', () => {
+                    loadChat(chat.id);
+                    if (window.innerWidth < 768) toggleSidebar();
+                });
+
+                const text = document.createElement('div');
+                text.className = 'chat-item-text';
+                text.textContent = chat.title;
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'chat-item-delete';
+                delBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                delBtn.addEventListener('click', (e) => deleteChat(chat.id, e));
+
+                div.appendChild(text);
+                div.appendChild(delBtn);
+                frag.appendChild(div);
+            });
+
+            list.appendChild(frag);
+        }
+
+        // ===== RENDER MESSAGES =====
+        function renderMessages(messages) {
+            const container = els.messages;
+            container.innerHTML = '';
+            const frag = document.createDocumentFragment();
+
+            messages.forEach(msg => {
+                const node = createMessageNode(msg.role, msg.content, false);
+                frag.appendChild(node);
+            });
+
+            container.appendChild(frag);
+        }
+
+        // ===== INPUT HANDLING =====
+        function handleKeydown(e) {
+            if (e.key === 'Enter') {
+                if (IS_MOBILE) {
+                    return;
+                } else {
+                    if (!e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                }
+            }
+        }
+
+        function autoResize() {
+            const el = els.inputBox;
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+        }
+
+        function sendSuggestion(text) {
+            els.inputBox.value = text;
+            sendMessage();
+        }
+
+        // ===== SEND MESSAGE =====
+        async function sendMessage() {
+            const text = els.inputBox.value.trim();
+            if (!text || isLoading) return;
+
+            els.inputBox.value = '';
+            els.inputBox.style.height = 'auto';
+            hideWelcome();
+
+            appendMessage('user', text, true);
+
+            // Kalau chat ini belum ada di array (masih pending), baru masukkan sekarang
+            let chat = chats.find(c => c.id === currentChatId);
+            if (!chat && pendingChat && pendingChat.id === currentChatId) {
+                chat = pendingChat;
+                chats.unshift(chat);
+                pendingChat = null;
+            }
+            if (!chat) return;
+
+            chat.messages.push({ role: 'user', content: text });
+
+            if (chat.messages.length === 1) {
+                chat.title = text.slice(0, 30) + (text.length > 30 ? '...' : '');
+                renderHistory();
+            }
+            saveData();
+            setLoading(true);
+
+            try {
+                const response = await fetchAIResponse(chat.messages);
+                appendMessage('ai', response, true);
+                chat.messages.push({ role: 'assistant', content: response });
+                saveData();
+            } catch (err) {
+                console.error('AI Error:', err);
+                const errorMsg = 'Waduh, ada masalah nih bro. Coba lagi bentar ya.';
+                appendMessage('ai', errorMsg, true, true);
+                chat.messages.push({ role: 'assistant', content: errorMsg });
+                saveData();
+            }
+
+            setLoading(false);
+            scrollToBottom();
+        }
+
+        // ===== AI FETCHING =====
+        async function fetchAIResponse(messages) {
+            const endpoint = API_ENDPOINTS[currentModel];
+            if (!endpoint) throw new Error('Unknown model: ' + currentModel);
+
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: messages.map(m => ({
+                        role: m.role === 'user' ? 'user' : 'assistant',
+                        content: m.content
+                    })),
+                    system: SYSTEM_PROMPT
+                })
+            });
+
+            if (!res.ok) {
+                const err = await res.text();
+                throw new Error('API error ' + res.status + ': ' + err);
+            }
+
+            const data = await res.json();
+            const content = data?.choices?.[0]?.message?.content;
+            if (!content) throw new Error('No content in response');
+            return content.trim();
+        }
+
+        // ===== MESSAGE CREATION =====
+        function createMessageNode(role, content, animate = true, isError = false) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message ' + role;
+            msgDiv.id = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
+            const formatted = formatContent(content);
+
+            if (role === 'user') {
+                msgDiv.innerHTML = '<div class="bubble">' + formatted + '</div>';
+            } else {
+                msgDiv.innerHTML = `
+                    <div class="avatar"><img src="${WOLF_IMG}" alt="OrdinaryAi" loading="lazy"></div>
+                    <div>
+                        <div class="bubble ${isError ? 'error-bubble' : ''}">${formatted}</div>
+                        <div class="message-actions-bar">
+                            <button class="msg-action-btn" data-action="copy" data-id="${msgDiv.id}" title="Salin">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                            <button class="msg-action-btn" data-action="regen" title="Ulangi">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                            </button>
+                            <button class="msg-action-btn" data-action="share" data-id="${msgDiv.id}" title="Bagikan">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                            </button>
+                            <button class="msg-action-btn" data-action="like" title="Suka">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                            </button>
+                            <button class="msg-action-btn" data-action="dislike" title="Tidak suka">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (!animate) msgDiv.style.animation = 'none';
+            return msgDiv;
+        }
+
+        function appendMessage(role, content, animate = true, isError = false) {
+            const container = els.messages;
+            const node = createMessageNode(role, content, animate, isError);
+            container.appendChild(node);
+            scrollToBottom();
+        }
+
+        // ===== FORMAT CONTENT =====
+        function stripLatex(str) {
+            // Strip display math $$...$$
+            str = str.replace(/\$\$[\s\S]*?\$\$/g, m => m.slice(2,-2).trim());
+            // Strip inline math $...$
+            str = str.replace(/\$([^$\n]+)\$/g, '$1');
+            // Strip common LaTeX commands: \circ \approx \text{...} ^2 etc
+            str = str.replace(/\\circ/g, '°');
+            str = str.replace(/\\approx/g, '≈');
+            str = str.replace(/\\text\{([^}]+)\}/g, '$1');
+            str = str.replace(/\\cdot/g, '·');
+            str = str.replace(/\\times/g, '×');
+            str = str.replace(/\\pm/g, '±');
+            str = str.replace(/\\leq/g, '≤');
+            str = str.replace(/\\geq/g, '≥');
+            str = str.replace(/\\[a-zA-Z]+\{([^}]*)\}/g, '$1');
+            str = str.replace(/\\[a-zA-Z]+/g, '');
+            str = str.replace(/\^(\d+)/g, (_, n) => {
+                const sup = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+                return n.split('').map(c => sup[c]||c).join('');
+            });
+            return str;
+        }
+
+        function inlineFormat(str) {
+            str = stripLatex(str);
+            str = escapeHtml(str);
+            str = str.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+            str = str.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            str = str.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            str = str.replace(/`([^`]+)`/g, '<code>$1</code>');
+            return str;
+        }
+
+        function formatContent(text) {
+            // 0. Strip LaTeX
+            text = stripLatex(text);
+
+            // 1. Simpan code block sebelum escape
+            const blocks = [];
+            text = text.replace(/```([\w]*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+                const hl = highlightCode(code.trim(), lang);
+                blocks.push('<pre><code class="language-' + (lang||'text') + '">' + hl + '</code></pre>');
+                return '\x00B' + (blocks.length-1) + '\x00';
+            });
+
+            // 2. Parse tabel markdown sebelum escape global
+            text = text.replace(/((^\|.+\|\n?)+)/gm, (table) => {
+                const rows = table.trim().split('\n').filter(r => r.trim());
+                const dataRows = rows.filter(r => !/^\|[\s\-:|]+\|$/.test(r.trim()));
+                if (dataRows.length < 1) return table;
+                let html = '<div class="md-table-wrap"><table class="md-table">';
+                dataRows.forEach((row, i) => {
+                    const cells = row.trim().replace(/^\||\|$/g,'').split('|');
+                    const tag = i === 0 ? 'th' : 'td';
+                    html += '<tr>' + cells.map(c => `<${tag}>${inlineFormat(c.trim())}</${tag}>`).join('') + '</tr>';
+                });
+                html += '</table></div>';
+                blocks.push(html);
+                return '\x00B' + (blocks.length-1) + '\x00';
+            });
+
+            // 3. Escape HTML
+            let out = escapeHtml(text);
+
+            // 4. Headings
+            out = out.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            out = out.replace(/^## (.+)$/gm,  '<h2>$1</h2>');
+            out = out.replace(/^# (.+)$/gm,   '<h1>$1</h1>');
+
+            // 5. Inline formatting
+            out = out.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+            out = out.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            // italic hanya kalau dikelilingi non-word atau spasi (hindari false positive)
+            out = out.replace(/(^|[\s>(])\*(\S[^*\n]*?\S|\S)\*(?=[\s)<.,!?;]|$)/gm, '$1<em>$2</em>');
+            out = out.replace(/~~(.+?)~~/g, '<del>$1</del>');
+            out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // 6. Blockquote
+            out = out.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+
+            // 7. HR
+            out = out.replace(/^---+$/gm, '<hr>');
+
+            // 8. List line by line
+            const lines = out.split('\n');
+            let inOl = false, inUl = false, result = [];
+            for (let line of lines) {
+                const olM = line.match(/^\d+\. (.+)$/);
+                const ulM = line.match(/^[ \t]*[-*+] (.+)$/);
+                if (olM) {
+                    if (inUl) { result.push('</ul>'); inUl=false; }
+                    if (!inOl) { result.push('<ol>'); inOl=true; }
+                    result.push('<li>' + olM[1] + '</li>');
+                } else if (ulM) {
+                    if (inOl) { result.push('</ol>'); inOl=false; }
+                    if (!inUl) { result.push('<ul>'); inUl=true; }
+                    result.push('<li>' + ulM[1] + '</li>');
+                } else {
+                    if (inOl) { result.push('</ol>'); inOl=false; }
+                    if (inUl) { result.push('</ul>'); inUl=false; }
+                    result.push(line);
+                }
+            }
+            if (inOl) result.push('</ol>');
+            if (inUl) result.push('</ul>');
+            out = result.join('\n');
+
+            // 9. Newline → br, bersihkan sekitar block tags
+            out = out.replace(/\n/g, '<br>');
+            out = out.replace(/<br>(<\/?(h[1-3]|ul|ol|li|blockquote|hr|pre|div)[^>]*>)/g, '$1');
+            out = out.replace(/(<\/?(h[1-3]|ul|ol|li|blockquote|hr|pre|div)[^>]*>)<br>/g, '$1');
+
+            // 10. Kembalikan blocks
+            out = out.replace(/\x00B(\d+)\x00/g, (_, i) => blocks[+i]);
+
+            return out;
+        }
+
+        function highlightCode(code, lang) {
+            let highlighted = escapeHtml(code);
+            highlighted = highlighted.replace(/(\/\/.*$|#.*$)/gm, '<span class="hljs-comment">$1</span>');
+            highlighted = highlighted.replace(/(\".*?\"|'.*?'|`[\s\S]*?`)/g, '<span class="hljs-string">$1</span>');
+            const keywords = ['const','let','var','function','return','if','else','for','while','async','await','import','from','export','class','new','try','catch','throw','true','false','null','undefined','def','print','in','and','or','not','pass','break','continue'];
+            const kwRegex = new RegExp('\\b(' + keywords.join('|') + ')\\b', 'g');
+            highlighted = highlighted.replace(kwRegex, '<span class="hljs-keyword">$1</span>');
+            highlighted = highlighted.replace(/(\w+)(?=\()/g, '<span class="hljs-function">$1</span>');
+            highlighted = highlighted.replace(/\b\d+\b/g, '<span class="hljs-number">$&</span>');
+            return highlighted;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ===== TEXT TO IMAGE (MULTI-MODEL) =====
+        (function() {
+            const BASE_URL = 'https://ordinaryai-api.vercel.app';
+            const TTI_API  = BASE_URL + '/api/text-to-image';
+
+            const modal      = document.getElementById('imgGenModal');
+            const btnOpen    = document.getElementById('btnTextToImage');
+            const btnClose   = document.getElementById('imgGenClose');
+            const promptEl   = document.getElementById('imgPrompt');
+            const genBtn     = document.getElementById('imgGenBtn');
+            const statusEl   = document.getElementById('imgStatus');
+            const statusText = document.getElementById('imgStatusText');
+            const resultEl   = document.getElementById('imgResult');
+            const imgOutput  = document.getElementById('imgOutput');
+            const dlBtn      = document.getElementById('imgDownload');
+            const copyLinkBtn = document.getElementById('imgCopyLink');
+            const regenBtn   = document.getElementById('imgRegenerate');
+            const sizeOpts   = document.querySelectorAll('.size-opt');
+            const chips      = document.querySelectorAll('.img-chip');
+            const modelOpts  = document.querySelectorAll('.img-model-opt');
+            const sizeSection = document.getElementById('imgSizeSection');
+
+            const MODEL_LABELS = { flux: 'Flux', freegen: 'FreeGen', ernie: 'Ernie', deepimage: 'DeepImage' };
+            const MODEL_SUPPORTS_SIZE = { flux: true, freegen: false, ernie: false, deepimage: true };
+
+            let selectedModel = 'flux';
+            let selectedW = 1024, selectedH = 1024;
+            let currentImgUrl = '';
+            let isGenerating = false;
+
+            // Model selection
+            modelOpts.forEach(opt => {
+                opt.addEventListener('click', () => {
+                    modelOpts.forEach(o => {
+                        o.classList.remove('active-model');
+                        o.style.background = 'var(--bg-tertiary)';
+                        o.style.borderColor = 'var(--border)';
+                    });
+                    opt.classList.add('active-model');
+                    opt.style.background = 'var(--accent-glow)';
+                    opt.style.borderColor = 'var(--accent)';
+                    selectedModel = opt.dataset.model;
+                    // Hide/show size for models that don't support it
+                    sizeSection.style.display = MODEL_SUPPORTS_SIZE[selectedModel] ? 'block' : 'none';
+                    document.getElementById('imgModelSubtitle').textContent = 'Model: ' + MODEL_LABELS[selectedModel];
+                });
+            });
+
+            // Size selection
+            sizeOpts.forEach(opt => {
+                opt.addEventListener('click', () => {
+                    sizeOpts.forEach(o => {
+                        o.classList.remove('active-size');
+                        o.style.background = 'var(--bg-tertiary)';
+                        o.style.borderColor = 'var(--border)';
+                    });
+                    opt.classList.add('active-size');
+                    opt.style.background = 'var(--accent-glow)';
+                    opt.style.borderColor = 'var(--accent)';
+                    selectedW = parseInt(opt.dataset.w);
+                    selectedH = parseInt(opt.dataset.h);
+                });
+            });
+
+            // Chips
+            chips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    promptEl.value = chip.dataset.text;
+                    promptEl.focus();
+                });
+            });
+
+            function openModal() {
+                modal.style.display = 'flex';
+                setTimeout(() => promptEl.focus(), 100);
+                if (window.innerWidth <= 768) {
+                    document.getElementById('sidebar').classList.remove('open');
+                    document.getElementById('overlay').classList.remove('open');
+                }
+            }
+            function closeModal() { modal.style.display = 'none'; }
+
+            btnOpen.addEventListener('click', openModal);
+            btnClose.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.style.display === 'flex') closeModal(); });
+
+            const modelEta = { flux: '~20-40 detik', freegen: '~30-60 detik', ernie: '~20-40 detik', deepimage: '~1-2 menit' };
+
+            async function doGenerate() {
+                const text = promptEl.value.trim();
+                if (!text) { promptEl.focus(); showToast('Tulis deskripsi gambar dulu!'); return; }
+                if (isGenerating) return;
+                isGenerating = true;
+
+                genBtn.disabled = true;
+                genBtn.style.opacity = '0.6';
+                resultEl.style.display = 'none';
+                statusEl.style.display = 'block';
+                statusText.textContent = MODEL_LABELS[selectedModel] + ' sedang bekerja... (' + modelEta[selectedModel] + ')';
+                currentImgUrl = '';
+
+                let elapsed = 0;
+                const timer = setInterval(() => {
+                    elapsed++;
+                    statusText.textContent = MODEL_LABELS[selectedModel] + ' generating... ' + elapsed + 's';
+                }, 1000);
+
+                try {
+                    const res = await fetch(TTI_API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt: text, model: selectedModel, width: selectedW, height: selectedH })
+                    });
+                    clearInterval(timer);
+                    const data = await res.json();
+                    if (!res.ok || !data.image_url) throw new Error(data.error || 'Gagal generate gambar');
+
+                    currentImgUrl = data.image_url;
+                    imgOutput.src = currentImgUrl;
+                    imgOutput.onload = () => {
+                        statusEl.style.display = 'none';
+                        resultEl.style.display = 'block';
+                        showToast('Gambar jadi! ' + elapsed + 's 🎨');
+                    };
+                    imgOutput.onerror = () => {
+                        statusEl.style.display = 'none';
+                        resultEl.style.display = 'block';
+                        showToast('Gambar jadi tapi gagal preview, salin linknya.');
+                    };
+                } catch (err) {
+                    clearInterval(timer);
+                    statusEl.style.display = 'none';
+                    showToast('Error: ' + (err.message || 'Gagal generate'));
+                } finally {
+                    isGenerating = false;
+                    genBtn.disabled = false;
+                    genBtn.style.opacity = '1';
+                }
+            }
+
+            genBtn.addEventListener('click', doGenerate);
+            promptEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doGenerate(); } });
+            regenBtn.addEventListener('click', doGenerate);
+
+            dlBtn.addEventListener('click', async () => {
+                if (!currentImgUrl) return;
+                try {
+                    const res = await fetch(currentImgUrl);
+                    const blob = await res.blob();
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'ordinaryai-' + selectedModel + '.jpg';
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                } catch { window.open(currentImgUrl, '_blank'); }
+            });
+
+            copyLinkBtn.addEventListener('click', () => {
+                if (!currentImgUrl) return;
+                navigator.clipboard.writeText(currentImgUrl).then(() => showToast('Link gambar tersalin!'));
+            });
+        })();
+
+        // ===== FAKE SALDO DANA =====
+        (function() {
+            const DANA_API = 'https://ordinaryai-api.vercel.app/api/fake-saldo-dana';
+
+            const modal    = document.getElementById('danaModal');
+            const btnOpen  = document.getElementById('btnFakeDana');
+            const btnClose = document.getElementById('danaClose');
+            const input    = document.getElementById('danaInput');
+            const preview  = document.getElementById('danaPreview');
+            const genBtn   = document.getElementById('danaGenBtn');
+            const statusEl = document.getElementById('danaStatus');
+            const resultEl = document.getElementById('danaResult');
+            const imgOut   = document.getElementById('danaOutput');
+            const dlBtn    = document.getElementById('danaDl');
+            const shareBtn = document.getElementById('danaShare');
+            const ulangBtn = document.getElementById('danaUlang');
+            const chips    = document.querySelectorAll('.dana-chip');
+
+            let isGenerating = false;
+            let lastNominal  = 0;
+
+            function openModal() {
+                modal.style.display = 'flex';
+                setTimeout(() => input.focus(), 100);
+                if (window.innerWidth <= 768) {
+                    document.getElementById('sidebar').classList.remove('open');
+                    document.getElementById('overlay').classList.remove('open');
+                }
+            }
+            function closeModal() { modal.style.display = 'none'; }
+
+            btnOpen.addEventListener('click', openModal);
+            btnClose.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.style.display === 'flex') closeModal(); });
+
+            // Format preview nominal
+            input.addEventListener('input', () => {
+                const raw = Number(input.value.replace(/\D/g, ''));
+                if (!isNaN(raw) && raw > 0) {
+                    preview.textContent = 'Rp ' + raw.toLocaleString('id-ID');
+                } else {
+                    preview.textContent = '';
+                }
+            });
+
+            // Chips
+            chips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    input.value = chip.dataset.val;
+                    const raw = Number(chip.dataset.val);
+                    preview.textContent = 'Rp ' + raw.toLocaleString('id-ID');
+                });
+            });
+
+            async function doGenerate() {
+                const rawVal = Number(input.value.replace(/\D/g, ''));
+                if (!rawVal || rawVal <= 0) { input.focus(); showToast('Masukkan nominal dulu!'); return; }
+                if (isGenerating) return;
+                isGenerating = true;
+                lastNominal  = rawVal;
+
+                genBtn.disabled = true;
+                genBtn.style.opacity = '0.6';
+                resultEl.style.display = 'none';
+                statusEl.style.display = 'block';
+
+                try {
+                    const res = await fetch(DANA_API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nominal: rawVal })
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(err.error || 'Server error ' + res.status);
+                    }
+                    const blob = await res.blob();
+                    const url  = URL.createObjectURL(blob);
+                    imgOut.src = url;
+                    imgOut.onload = () => {
+                        statusEl.style.display = 'none';
+                        resultEl.style.display = 'block';
+                        showToast('Saldo berhasil di-generate! 💚');
+                    };
+                } catch (err) {
+                    statusEl.style.display = 'none';
+                    showToast('Error: ' + (err.message || 'Gagal generate saldo'));
+                } finally {
+                    isGenerating = false;
+                    genBtn.disabled = false;
+                    genBtn.style.opacity = '1';
+                }
+            }
+
+            genBtn.addEventListener('click', doGenerate);
+            ulangBtn.addEventListener('click', doGenerate);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); doGenerate(); }
+            });
+
+            dlBtn.addEventListener('click', async () => {
+                if (!imgOut.src) return;
+                try {
+                    const res = await fetch(imgOut.src);
+                    const blob = await res.blob();
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `dana_${lastNominal}.png`;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                } catch {
+                    showToast('Gagal download, coba screenshot aja');
+                }
+            });
+
+            shareBtn.addEventListener('click', () => {
+                if (!imgOut.src) return;
+                if (navigator.share) {
+                    fetch(imgOut.src).then(r => r.blob()).then(blob => {
+                        const file = new File([blob], `dana_${lastNominal}.png`, { type: 'image/png' });
+                        navigator.share({ title: 'Saldo Dana', files: [file] }).catch(() => {});
+                    });
+                } else {
+                    showToast('Browser tidak support share, screenshot aja 😄');
+                }
+            });
+        })();
+
+        // ===== LOADING & SCROLL =====
+        function setLoading(loading) {
+            isLoading = loading;
+            els.typing.style.display = loading ? 'flex' : 'none';
+            els.sendBtn.disabled = loading;
+            els.inputBox.disabled = loading;
+        }
+
+        function scrollToBottom() {
+            requestAnimationFrame(() => {
+                els.chatArea.scrollTop = els.chatArea.scrollHeight;
+            });
+        }
+
+        // ===== MESSAGE ACTIONS =====
+        function copyMessage(msgId) {
+            const msgDiv = document.getElementById(msgId);
+            if (!msgDiv) return;
+            const bubble = msgDiv.querySelector('.bubble');
+            const text = bubble.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Tersalin ke clipboard');
+            });
+        }
+
+        function shareMessage(msgId) {
+            const msgDiv = document.getElementById(msgId);
+            if (!msgDiv) return;
+            const bubble = msgDiv.querySelector('.bubble');
+            const text = bubble.innerText;
+            if (navigator.share) {
+                navigator.share({ title: 'OrdinaryAi Chat', text: text }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('Disalin, tinggal paste ke temenmu');
+                });
+            }
+        }
+
+        function likeMessage(btn) {
+            btn.classList.toggle('liked');
+            const sibling = btn.nextElementSibling;
+            if (sibling && sibling.classList.contains('disliked')) {
+                sibling.classList.remove('disliked');
+            }
+            showToast(btn.classList.contains('liked') ? 'Mantap, thanks feedbacknya!' : 'Feedback dicabut');
+        }
+
+        function dislikeMessage(btn) {
+            btn.classList.toggle('disliked');
+            const sibling = btn.previousElementSibling;
+            if (sibling && sibling.classList.contains('liked')) {
+                sibling.classList.remove('liked');
+            }
+            showToast(btn.classList.contains('disliked') ? 'Oke, bakal saya perbaiki' : 'Feedback dicabut');
+        }
+
+        function regenerate() {
+            const chat = chats.find(c => c.id === currentChatId);
+            if (!chat || chat.messages.length < 2) return;
+            if (chat.messages[chat.messages.length - 1].role === 'assistant') {
+                chat.messages.pop();
+                saveData();
+            }
+            hideWelcome();
+            renderMessages(chat.messages);
+
+            setLoading(true);
+            fetchAIResponse(chat.messages).then(response => {
+                appendMessage('ai', response, true);
+                chat.messages.push({ role: 'assistant', content: response });
+                saveData();
+                setLoading(false);
+                scrollToBottom();
+            }).catch(err => {
+                setLoading(false);
+                showToast('Gagal mengulang, coba lagi');
+            });
+        }
+
+        // ===== FILE UPLOAD =====
+        function handleFileUpload() {
+            const file = els.fileInput.files[0];
+            if (!file) return;
+            showToast('File "' + file.name + '" dipilih (fitur upload belum aktif)');
+            els.fileInput.value = '';
+        }
+
+        // ===== SIDEBAR =====
+        function toggleSidebar() {
+            els.sidebar.classList.toggle('open');
+            els.overlay.classList.toggle('open');
+        }
+
+        // ===== TOAST =====
+        let toastTimeout;
+        function showToast(msg) {
+            const toast = els.toast;
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // ===== THEME =====
+        function toggleTheme() {
+            const isLight = document.body.classList.toggle('light');
+            $('iconDark').style.display = isLight ? 'none' : 'block';
+            $('iconLight').style.display = isLight ? 'block' : 'none';
+            localStorage.setItem('ordinary_theme', isLight ? 'light' : 'dark');
+        }
+
+        function initTheme() {
+            const saved = localStorage.getItem('ordinary_theme');
+            if (saved === 'light') {
+                document.body.classList.add('light');
+                $('iconDark').style.display = 'none';
+                $('iconLight').style.display = 'block';
+            }
+        }
+
+        // ===== START =====
+        initTheme();
+        init();
+    </script>
+</body>
+</html>

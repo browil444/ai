@@ -1,0 +1,16 @@
+{
+  "name": "ordinaryai-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'Build OK'"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.53",
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}
